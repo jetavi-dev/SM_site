@@ -1,0 +1,226 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25) 0 2px, transparent 3px),
+        radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0 2px, transparent 3px),
+        #ff8fb3;
+
+    background-size: 80px 80px, 110px 110px;
+
+    font-family: "VT323", monospace;
+
+    color: #3b1630;
+
+    overflow: hidden;
+}
+
+.card {
+    width: min(90%, 650px);
+
+    padding: 55px 35px 45px;
+
+    text-align: center;
+
+    background: #ffd1df;
+
+    border: 5px solid #3b1630;
+
+    box-shadow:
+        10px 10px 0 #3b1630,
+        inset 0 0 0 4px #ffedf3;
+
+    position: relative;
+}
+
+.sparkles {
+    font-size: 25px;
+    letter-spacing: 15px;
+    margin-bottom: 25px;
+}
+
+h1 {
+    margin: 0 0 25px;
+
+    font-family: "Press Start 2P", monospace;
+
+    font-size: clamp(18px, 4vw, 28px);
+
+    line-height: 1.6;
+}
+
+.question {
+    margin: 0;
+
+    font-size: clamp(35px, 7vw, 55px);
+
+    line-height: 1;
+
+    font-weight: bold;
+}
+
+.subtext {
+    font-size: 25px;
+    margin: 25px 0 35px;
+}
+
+.buttons {
+    min-height: 100px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 25px;
+
+    position: relative;
+}
+
+.button {
+    border: 4px solid #3b1630;
+
+    padding: 14px 30px;
+
+    font-family: "Press Start 2P", monospace;
+
+    font-size: 15px;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        font-size 0.5s ease,
+        padding 0.5s ease;
+
+    box-shadow: 5px 5px 0 #3b1630;
+}
+
+.button:active {
+    box-shadow: 2px 2px 0 #3b1630;
+    transform: translate(3px, 3px);
+}
+
+.no-button {
+    background: #fff0f5;
+}
+
+.no-button:hover {
+    background: #ffffff;
+}
+
+.yes-button {
+    background: #ff4f91;
+
+    color: white;
+
+    transform-origin: center;
+}
+
+.yes-button:hover {
+    background: #ff337f;
+}
+
+.hint {
+    margin-top: 30px;
+
+    font-size: 22px;
+
+    opacity: 0.8;
+}
+
+.success {
+    margin-top: 35px;
+
+    padding-top: 25px;
+
+    border-top: 3px dashed #3b1630;
+
+    animation: appear 0.5s ease;
+}
+
+.success-heart {
+    font-size: 70px;
+
+    animation: heartbeat 1s infinite;
+}
+
+.success h2 {
+    font-family: "Press Start 2P", monospace;
+
+    font-size: 20px;
+
+    line-height: 1.6;
+}
+
+.success p {
+    font-size: 35px;
+
+    margin: 15px 0;
+}
+
+.success .small {
+    font-size: 22px;
+}
+
+.hidden {
+    display: none;
+}
+
+@keyframes heartbeat {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+@keyframes appear {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile */
+
+@media (max-width: 500px) {
+
+    .card {
+        padding: 40px 20px 35px;
+
+        box-shadow:
+            6px 6px 0 #3b1630,
+            inset 0 0 0 3px #ffedf3;
+    }
+
+    .buttons {
+        gap: 15px;
+    }
+
+    .button {
+        padding: 12px 20px;
+        font-size: 12px;
+    }
+
+    .subtext {
+        font-size: 21px;
+    }
+}
