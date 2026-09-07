@@ -95,68 +95,29 @@ function initializeMap() {
 /* =========================================================
    LOAD DATA
    ========================================================= */
-
 async function loadTravelData() {
-
     try {
-
-        let response;
-
-        if (API_BASE) {
-            response = await apiFetch("/api/travel", {
-                method: "GET",
-                auth: false
-            });
-        } else {
-            response = await fetch(
-                `${CONFIG.dataFile}?t=${Date.now()}`
-            );
-        }
-
+        const response = await fetch(
+            `${CONFIG.dataFile}?t=${Date.now()}`
+        );
 
         if (!response.ok) {
-
             throw new Error(
-                `HTTP ${response.status}`
+                `Could not load travel data (${response.status})`
             );
-
         }
-
 
         travelData = await response.json();
 
-
-        travelData.locations =
-            travelData.locations || [];
-
-        travelData.diary =
-            travelData.diary || [];
-
-        travelData.posts =
-            travelData.posts || [];
-
-        travelData.photos =
-            travelData.photos || [];
-
-
-        renderEverything();
-
-
+        renderAll();
     } catch (error) {
-
         console.error(
             "[travel] Could not load travel data:",
             error
         );
-
-
-        alert(
-            "Could not load travel data."
-        );
-
     }
-
 }
+
 
 
 /* =========================================================
