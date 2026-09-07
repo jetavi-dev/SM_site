@@ -17,7 +17,6 @@ let locationMarkers = {};
 let selectedCoordinates = null;
 
 let editorMode = false;
-let routeLine = null;
 
 
 /* =========================================================
@@ -32,10 +31,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setupPrintButton();
 
-    restoreEditorSession();
-
     loadTravelData();
 
+});
+
+/* One-time owner setup: Ctrl+Shift+G opens the local token setup. */
+document.addEventListener("keydown", event => {
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "g") {
+        event.preventDefault();
+        setupGithubToken();
+    }
 });
 
 
@@ -95,29 +100,59 @@ function initializeMap() {
 /* =========================================================
    LOAD DATA
    ========================================================= */
+
 async function loadTravelData() {
+
     try {
+
         const response = await fetch(
             `${CONFIG.dataFile}?t=${Date.now()}`
         );
 
+
         if (!response.ok) {
+
             throw new Error(
-                `Could not load travel data (${response.status})`
+                `HTTP ${response.status}`
             );
+
         }
+
 
         travelData = await response.json();
 
+
+        travelData.locations =
+            travelData.locations || [];
+
+        travelData.diary =
+            travelData.diary || [];
+
+        travelData.posts =
+            travelData.posts || [];
+
+        travelData.photos =
+            travelData.photos || [];
+
+
         renderEverything();
+
+
     } catch (error) {
+
         console.error(
             "[travel] Could not load travel data:",
             error
         );
-    }
-}
 
+
+        alert(
+            "Could not load travel data."
+        );
+
+    }
+
+}
 
 
 /* =========================================================
@@ -155,30 +190,6 @@ function renderLocations() {
 
     locationMarkers = {};
 
-    if (routeLine) {
-        routeLine.remove();
-        routeLine = null;
-    }
-
-    const routePoints = travelData.locations
-        .filter(location =>
-            Number.isFinite(Number(location.lat)) &&
-            Number.isFinite(Number(location.lng))
-        )
-        .map(location => [Number(location.lat), Number(location.lng)]);
-
-    if (routePoints.length > 1) {
-        routeLine = L.polyline(routePoints, {
-            color: "#111",
-            weight: 4,
-            dashArray: "8 8",
-            opacity: 0.9
-        }).addTo(map);
-
-        map.fitBounds(routeLine.getBounds(), { padding: [35, 35] });
-    } else if (routePoints.length === 1) {
-        map.setView(routePoints[0], 8);
-    }
 
     travelData.locations.forEach(location => {
 
@@ -830,18 +841,6 @@ function setupEditor() {
 
     }
 
-    document.getElementById("editorLogoutButton")?.addEventListener(
-        "click",
-        logoutEditor
-    );
-
-    document.getElementById("editorPassword")?.addEventListener(
-        "keydown",
-        event => {
-            if (event.key === "Enter") loginEditor();
-        }
-    );
-
 }
 
 
@@ -880,60 +879,80 @@ function activateEditorTab(tabName) {
    LOGIN
    ========================================================= */
 
-async function loginEditor() {
+function loginEditor() {
 
     const password =
-        document.getElementById("editorPassword")?.value || "";
+        document.getElementById(
+            "editorPassword"
+        )?.value || "";
+
+
+    /*
+     * IMPORTANT:
+     * This is only a UI gate.
+     *
+     * A password stored in public JavaScript is NOT secure.
+     *
+     * For the current GitHub-only version this is intentionally
+     * simple. A future production version should use GitHub
+     * OAuth / GitHub App authentication.
+     */
+
+    const EDITOR_PASSWORD =
+        "Sarah1234";
+
 
     const message =
-        document.getElementById("loginMessage");
+        document.getElementById(
+            "loginMessage"
+        );
 
-    if (!password) {
-        if (message) message.textContent = "Please enter the password.";
-        return;
+
+    if (password === EDITOR_PASSWORD) {
+
+        editorMode = true;
+
+
+        document
+            .getElementById(
+                "editorContent"
+            )
+            ?.classList.remove(
+                "hidden"
+            );
+
+
+        document
+            .querySelector(
+                ".editor-login"
+            )
+            ?.classList.add(
+                "hidden"
+            );
+
+
+        message.textContent =
+            "EDITOR MODE ENABLED ✓";
+
+
+        if (map) {
+
+            map.getContainer()
+                .classList.add(
+                    "editor-map"
+                );
+
+        }
+
+    } else {
+
+        message.textContent =
+            "Wrong password.";
+
     }
 
-    if (password !== CONFIG.editorPassword) {
-        if (message) message.textContent = "Wrong password.";
-        return;
-    }
-
-    editorMode = true;
-    localStorage.setItem("sarah_editor_unlocked", "1");
-
-    showEditorContent("EDITOR MODE ENABLED ✓");
-
-    const passwordInput = document.getElementById("editorPassword");
-    if (passwordInput) passwordInput.value = "";
 }
 
-function showEditorContent(messageText = "EDITOR MODE ENABLED ✓") {
-    editorMode = true;
-
-    document.getElementById("editorContent")?.classList.remove("hidden");
-    document.querySelector(".editor-login")?.classList.add("hidden");
-
-    const message = document.getElementById("loginMessage");
-    if (message) message.textContent = messageText;
-
-    if (map) map.getContainer().classList.add("editor-map");
-}
-
-function restoreEditorSession() {
-    if (localStorage.getItem("sarah_editor_unlocked") === "1") {
-        showEditorContent("EDITOR MODE RESTORED ✓");
-    }
-}
-
-function logoutEditor() {
-    localStorage.removeItem("sarah_editor_unlocked");
-    editorMode = false;
-    document.getElementById("editorContent")?.classList.add("hidden");
-    document.querySelector(".editor-login")?.classList.remove("hidden");
-    const message = document.getElementById("loginMessage");
-    if (message) message.textContent = "Logged out.";
-    map?.getContainer().classList.remove("editor-map");
-}
 
 /* =========================================================
    SAVE LOCATION
@@ -1239,59 +1258,156 @@ async function uploadPhotoData() {
 
     if (!editorMode) return;
 
-    const fileInput = document.getElementById("photoFile");
-    const file = fileInput?.files?.[0];
+
+    const fileInput =
+        document.getElementById(
+            "photoFile"
+        );
+
+
+    const file =
+        fileInput.files[0];
+
 
     if (!file) {
-        alert("Please select a photo.");
+
+        alert(
+            "Please select a photo."
+        );
+
         return;
     }
 
-    const caption = document.getElementById("photoCaption").value.trim();
-    const date = document.getElementById("photoDate").value;
-    const locationId = document.getElementById("photoLocation").value;
-    const status = document.getElementById("uploadStatus");
 
-    status.textContent = "Preparing upload...";
+    const caption =
+        document.getElementById(
+            "photoCaption"
+        ).value.trim();
+
+
+    const date =
+        document.getElementById(
+            "photoDate"
+        ).value;
+
+
+    const locationId =
+        document.getElementById(
+            "photoLocation"
+        ).value;
+
+
+    const status =
+        document.getElementById(
+            "uploadStatus"
+        );
+
+
+    status.textContent =
+        "Preparing upload...";
+
 
     try {
-        const base64 = await fileToBase64(file);
-        const originalBase = sanitizeFilename(file.name).replace(/\.[^.]+$/, "");
-        const filename = `${Date.now()}-${originalBase || "photo"}.jpg`;
-        const path = `photos/${filename}`;
 
-        status.textContent = "Uploading photo to GitHub...";
+        const base64 =
+            await fileToBase64(
+                file
+            );
+
+
+        const safeName =
+            sanitizeFilename(
+                file.name
+            );
+
+
+        const filename =
+            `${Date.now()}-${safeName}`;
+
+
+        const path =
+            `photos/${filename}`;
+
+
+        status.textContent =
+            "Uploading photo...";
+
 
         await githubPutFile(
             path,
             base64,
-            `Add travel photo: ${filename}`
+            `Add photo: ${filename}`,
+            true
         );
 
-        const url =
-            `${CONFIG.siteBaseUrl.replace(/\/$/, "")}/${path}`;
+
+        /*
+         * GitHub Pages URL.
+         */
+        const photoUrl =
+            `https://${CONFIG.owner}.github.io/` +
+            `${CONFIG.repo}/${path}`;
+
 
         travelData.photos.push({
-            id: createId(filename),
+
+            id:
+                createId(
+                    filename
+                ),
+
             date,
-            url,
+
+            url:
+                photoUrl,
+
             path,
+
             caption,
-            locationId: locationId || null
+
+            locationId:
+                locationId || null
+
         });
 
-        status.textContent = "Saving journal data...";
+
+        status.textContent =
+            "Saving journal data...";
+
+
         await saveTravelData();
 
+
         fileInput.value = "";
-        document.getElementById("photoCaption").value = "";
-        document.getElementById("photoDate").value = "";
-        status.textContent = "Photo uploaded ✓";
+
+
+        document.getElementById(
+            "photoCaption"
+        ).value = "";
+
+
+        document.getElementById(
+            "photoDate"
+        ).value = "";
+
+
+        status.textContent =
+            "Photo uploaded ✓";
+
 
     } catch (error) {
-        console.error("[photo] Upload failed:", error);
-        status.textContent = `Upload failed: ${error.message}`;
+
+        console.error(
+            "[photo] Upload failed:",
+            error
+        );
+
+
+        status.textContent =
+            `Upload failed: ${error.message}`;
+
     }
+
 }
 
 
@@ -1301,20 +1417,34 @@ async function uploadPhotoData() {
 
 async function saveTravelData() {
 
-    if (!editorMode) {
-        throw new Error("Editor mode is not enabled.");
-    }
+    const contents =
+        JSON.stringify(
+            travelData,
+            null,
+            2
+        );
 
-    const contents = JSON.stringify(travelData, null, 2);
-    const base64 = utf8ToBase64(contents);
+
+    const base64 =
+        btoa(
+            unescape(
+                encodeURIComponent(
+                    contents
+                )
+            )
+        );
+
 
     await githubPutFile(
         CONFIG.dataFile,
         base64,
-        "Update travel journal"
+        "Update travel journal",
+        false
     );
 
+
     renderEverything();
+
 }
 
 
@@ -1322,98 +1452,175 @@ async function saveTravelData() {
    GITHUB API
    ========================================================= */
 
-function getGithubToken() {
-    const token = String(CONFIG.githubToken || "").trim();
+async function githubPutFile(
+    path,
+    base64Content,
+    message,
+    contentAlreadyBase64 = true
+) {
 
-    if (!token || token === "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") {
+    const token =
+        await requireToken();
+
+
+    const url =
+        `https://api.github.com/repos/` +
+        `${CONFIG.owner}/` +
+        `${CONFIG.repo}/contents/${path}`;
+
+
+    /*
+     * Get existing file SHA if the file already exists.
+     */
+    let sha = null;
+
+
+    const existingResponse =
+        await fetch(
+            `${url}?ref=${CONFIG.branch}`,
+            {
+                headers: {
+                    Authorization:
+                        `Bearer ${token}`,
+
+                    Accept:
+                        "application/vnd.github+json"
+                }
+            }
+        );
+
+
+    if (existingResponse.ok) {
+
+        const existing =
+            await existingResponse.json();
+
+        sha = existing.sha;
+
+    }
+
+
+    const body = {
+
+        message,
+
+        content:
+            contentAlreadyBase64
+                ? base64Content
+                : base64Content,
+
+        branch:
+            CONFIG.branch
+
+    };
+
+
+    if (sha) {
+        body.sha = sha;
+    }
+
+
+    const response =
+        await fetch(
+            url,
+            {
+                method: "PUT",
+
+                headers: {
+
+                    Authorization:
+                        `Bearer ${token}`,
+
+                    Accept:
+                        "application/vnd.github+json",
+
+                    "Content-Type":
+                        "application/json"
+
+                },
+
+                body:
+                    JSON.stringify(body)
+
+            }
+        );
+
+
+    if (!response.ok) {
+
+        const text =
+            await response.text();
+
+
         throw new Error(
-            "GitHub token is not configured. Add it to config.js before using the editor."
+            `GitHub API error ${response.status}: ${text}`
+        );
+
+    }
+
+
+    return response.json();
+
+}
+
+
+/* =========================================================
+   GITHUB TOKEN
+   ========================================================= */
+
+function getStoredGithubToken() {
+
+    return String(
+        localStorage.getItem("sarah_github_token") || ""
+    ).trim();
+
+}
+
+
+function setupGithubToken() {
+
+    const token =
+        prompt(
+            "Owner setup: paste the GitHub fine-grained token.\n\nThis is stored only in this browser and is NOT written to GitHub."
+        );
+
+    if (!token) {
+        return false;
+    }
+
+    localStorage.setItem(
+        "sarah_github_token",
+        token.trim()
+    );
+
+    alert(
+        "GitHub access configured on this device.\n\nThe token is not stored in the repository."
+    );
+
+    return true;
+
+}
+
+
+async function requireToken() {
+
+    const token = getStoredGithubToken();
+
+    if (!token) {
+        throw new Error(
+            "GitHub access is not configured on this device. The owner must complete the one-time browser setup."
         );
     }
 
     return token;
+
 }
 
-async function githubRequest(url, options = {}) {
-    const token = getGithubToken();
 
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${token}`,
-            "X-GitHub-Api-Version": "2022-11-28",
-            ...(options.headers || {})
-        }
-    });
-
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`GitHub API error ${response.status}: ${text}`);
-    }
-
-    return response;
-}
-
-async function githubPutFile(path, base64Content, message) {
-
-    const url =
-        `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${path}`;
-
-    let sha = null;
-
-    const existingResponse = await fetch(
-        `${url}?ref=${encodeURIComponent(CONFIG.branch)}`,
-        {
-            headers: {
-                Accept: "application/vnd.github+json",
-                Authorization: `Bearer ${getGithubToken()}`,
-                "X-GitHub-Api-Version": "2022-11-28"
-            }
-        }
-    );
-
-    if (existingResponse.ok) {
-        const existing = await existingResponse.json();
-        sha = existing.sha;
-    } else if (existingResponse.status !== 404) {
-        const text = await existingResponse.text();
-        throw new Error(`GitHub API error ${existingResponse.status}: ${text}`);
-    }
-
-    const body = {
-        message,
-        content: base64Content,
-        branch: CONFIG.branch
-    };
-
-    if (sha) body.sha = sha;
-
-    const response = await githubRequest(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-    });
-
-    return response.json();
-}
-
-function utf8ToBase64(value) {
-    const bytes = new TextEncoder().encode(value);
-    let binary = "";
-    const chunkSize = 0x8000;
-
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-    }
-
-    return btoa(binary);
-}
 
 /* =========================================================
    PRINT JOURNAL
    ========================================================= */
-
 
 function setupPrintButton() {
 
@@ -2376,45 +2583,333 @@ function buildPrintJournal() {
    PRINT ROUTE MAP
    ========================================================= */
 
-function buildPrintableRouteMap(locations) {
+function buildPrintableRouteMap(
+    locations
+) {
 
     if (!locations.length) {
-        return `<div class="print-map-empty">No locations have been added yet.</div>`;
-    }
-
-    const validLocations = locations.filter(location =>
-        Number.isFinite(Number(location.lat)) &&
-        Number.isFinite(Number(location.lng))
-    );
-
-    if (!validLocations.length) {
-        return `<div class="print-map-empty">No mapped locations available.</div>`;
-    }
-
-    // Clone the actual Leaflet map so the printed journal contains the
-    // real OpenStreetMap tiles rather than the previous dots-only diagram.
-    if (map) {
-        const clone = map.getContainer().cloneNode(true);
-        clone.classList.add("print-map-leaflet-clone");
-        clone.removeAttribute("id");
-
-        clone.querySelectorAll(".leaflet-control-container").forEach(el => el.remove());
-        clone.querySelectorAll(".leaflet-pane").forEach(el => {
-            el.style.pointerEvents = "none";
-        });
 
         return `
-            <div class="print-route-map print-real-map">
-                <div class="print-map-title">THAILAND JOURNEY MAP</div>
-                ${clone.outerHTML}
-                <div class="print-map-caption">
-                    ${validLocations.length} location${validLocations.length === 1 ? "" : "s"} · OpenStreetMap
-                </div>
+            <div class="print-map-empty">
+                No locations have been added yet.
             </div>
         `;
+
     }
 
-    return `<div class="print-map-empty">Map unavailable.</div>`;
+
+    const validLocations =
+        locations.filter(
+            location =>
+                Number.isFinite(
+                    Number(location.lat)
+                ) &&
+                Number.isFinite(
+                    Number(location.lng)
+                )
+        );
+
+
+    if (!validLocations.length) {
+
+        return `
+            <div class="print-map-empty">
+                No mapped locations available.
+            </div>
+        `;
+
+    }
+
+
+    const width = 1000;
+    const height = 560;
+    const padding = 80;
+
+
+    let minLng =
+        Math.min(
+            ...validLocations.map(
+                location =>
+                    Number(location.lng)
+            )
+        );
+
+
+    let maxLng =
+        Math.max(
+            ...validLocations.map(
+                location =>
+                    Number(location.lng)
+            )
+        );
+
+
+    let minLat =
+        Math.min(
+            ...validLocations.map(
+                location =>
+                    Number(location.lat)
+            )
+        );
+
+
+    let maxLat =
+        Math.max(
+            ...validLocations.map(
+                location =>
+                    Number(location.lat)
+            )
+        );
+
+
+    if (minLng === maxLng) {
+
+        minLng -= 1;
+        maxLng += 1;
+
+    }
+
+
+    if (minLat === maxLat) {
+
+        minLat -= 1;
+        maxLat += 1;
+
+    }
+
+
+    const lngPadding =
+        (maxLng - minLng) * 0.12;
+
+
+    const latPadding =
+        (maxLat - minLat) * 0.12;
+
+
+    minLng -= lngPadding;
+    maxLng += lngPadding;
+
+    minLat -= latPadding;
+    maxLat += latPadding;
+
+
+    function project(location) {
+
+        const x =
+            padding +
+            (
+                (
+                    Number(location.lng) -
+                    minLng
+                ) /
+                (
+                    maxLng -
+                    minLng
+                )
+            ) *
+            (
+                width -
+                padding * 2
+            );
+
+
+        const y =
+            height -
+            padding -
+            (
+                (
+                    Number(location.lat) -
+                    minLat
+                ) /
+                (
+                    maxLat -
+                    minLat
+                )
+            ) *
+            (
+                height -
+                padding * 2
+            );
+
+
+        return {
+            x,
+            y
+        };
+
+    }
+
+
+    const points =
+        validLocations.map(
+            project
+        );
+
+
+    let route = "";
+
+
+    if (points.length > 1) {
+
+        route = `
+
+            <polyline
+                points="${points
+                    .map(
+                        point =>
+                            `${point.x},${point.y}`
+                    )
+                    .join(" ")}"
+                fill="none"
+                stroke="#222"
+                stroke-width="5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-dasharray="10 8"
+            />
+
+        `;
+
+    }
+
+
+    const markers =
+        validLocations.map(
+            (location, index) => {
+
+                const point =
+                    points[index];
+
+
+                const isCurrent =
+                    location.current === true;
+
+
+                const radius =
+                    isCurrent
+                        ? 15
+                        : 10;
+
+
+                const fill =
+                    isCurrent
+                        ? "#ff4f91"
+                        : "#3d78c8";
+
+
+                return `
+
+                    <g
+                        class="print-map-location"
+                    >
+
+                        <circle
+                            cx="${point.x}"
+                            cy="${point.y}"
+                            r="${radius}"
+                            fill="${fill}"
+                            stroke="#111"
+                            stroke-width="4"
+                        />
+
+
+                        <text
+                            x="${point.x + 20}"
+                            y="${point.y - 12}"
+                            font-family="Arial, sans-serif"
+                            font-size="22"
+                            font-weight="700"
+                            fill="#111"
+                        >
+                            ${escapeHtml(
+                                location.name
+                            )}
+                        </text>
+
+
+                        ${
+                            location.date
+                                ? `
+                                    <text
+                                        x="${point.x + 20}"
+                                        y="${point.y + 15}"
+                                        font-family="Arial, sans-serif"
+                                        font-size="15"
+                                        fill="#555"
+                                    >
+                                        ${escapeHtml(
+                                            location.date
+                                        )}
+                                    </text>
+                                `
+                                : ""
+                        }
+
+                    </g>
+
+                `;
+
+            }
+        ).join("");
+
+
+    return `
+
+        <div class="print-route-map">
+
+            <svg
+                viewBox="0 0 ${width} ${height}"
+                role="img"
+                aria-label="Thailand travel route"
+            >
+
+                <rect
+                    x="0"
+                    y="0"
+                    width="${width}"
+                    height="${height}"
+                    fill="#fff7fb"
+                />
+
+
+                <rect
+                    x="20"
+                    y="20"
+                    width="${width - 40}"
+                    height="${height - 40}"
+                    rx="12"
+                    fill="none"
+                    stroke="#222"
+                    stroke-width="3"
+                />
+
+
+                ${route}
+
+                ${markers}
+
+            </svg>
+
+
+            <div class="print-map-legend">
+
+                <span>
+                    <i class="legend-current"></i>
+                    Current / latest location
+                </span>
+
+
+                <span>
+                    <i class="legend-history"></i>
+                    Previous location
+                </span>
+
+            </div>
+
+        </div>
+
+    `;
+
 }
 
 
@@ -2641,49 +3136,46 @@ function sanitizeFilename(
 }
 
 
-function fileToBase64(file) {
-    if (!file.type.startsWith("image/") || file.type === "image/gif" || file.type === "image/svg+xml") {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result).split(",")[1]);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
+function fileToBase64(
+    file
+) {
 
-    return new Promise((resolve, reject) => {
-        const image = new Image();
-        const objectUrl = URL.createObjectURL(file);
+    return new Promise(
+        (resolve, reject) => {
 
-        image.onload = () => {
-            try {
-                const maxDimension = 2200;
-                const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
-                const width = Math.max(1, Math.round(image.naturalWidth * scale));
-                const height = Math.max(1, Math.round(image.naturalHeight * scale));
+            const reader =
+                new FileReader();
 
-                const canvas = document.createElement("canvas");
-                canvas.width = width;
-                canvas.height = height;
-                const context = canvas.getContext("2d", { alpha: false });
-                context.drawImage(image, 0, 0, width, height);
 
-                const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-                resolve(dataUrl.split(",")[1]);
-            } catch (error) {
-                reject(error);
-            } finally {
-                URL.revokeObjectURL(objectUrl);
-            }
-        };
+            reader.onload = () => {
 
-        image.onerror = () => {
-            URL.revokeObjectURL(objectUrl);
-            reject(new Error("Could not read the photo."));
-        };
+                const result =
+                    reader.result;
 
-        image.src = objectUrl;
-    });
+
+                const base64 =
+                    String(result)
+                        .split(",")[1];
+
+
+                resolve(
+                    base64
+                );
+
+            };
+
+
+            reader.onerror =
+                reject;
+
+
+            reader.readAsDataURL(
+                file
+            );
+
+        }
+    );
+
 }
 
 
