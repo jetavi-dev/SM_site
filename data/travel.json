@@ -1,0 +1,24 @@
+{
+    "locations": [
+        {
+            "id": "bangkok-001",
+            "name": "Bangkok",
+            "lat": 13.7563,
+            "lng": 100.5018,
+            "description": "The beginning of the adventure.",
+            "date": "2026-09-08",
+            "current": true
+        }
+    ],
+    "diary": [
+        {
+            "id": "diary-001",
+            "date": "2026-09-08",
+            "title": "Hello Bangkok!",
+            "text": "I finally made it to Bangkok. This is the first test entry!",
+            "locationId": "bangkok-001"
+        }
+    ],
+    "posts": [],
+    "photos": []
+}
