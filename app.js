@@ -1325,7 +1325,7 @@ async function saveTravelData() {
 function getGithubToken() {
     const token = String(CONFIG.githubToken || "").trim();
 
-    if (!token || token === "PASTE_YOUR_FINE_GRAINED_TOKEN_HERE") {
+    if (!token || token === "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") {
         throw new Error(
             "GitHub token is not configured. Add it to config.js before using the editor."
         );
