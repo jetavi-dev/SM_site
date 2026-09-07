@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Sarah's Thailand Adventure</title>
+
+    <meta
+        name="description"
+        content="Sarah's Thailand travel journal."
+    >
+
+    <!-- Retro fonts -->
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Leaflet -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+
+<body>
+
+    <!-- =====================================================
+         HEADER
+         ===================================================== -->
+
+    <header class="site-header">
+
+        <div class="header-top">
+
+            <div class="brand">
+                SARAH.EXE
+            </div>
+
+            <div class="header-actions">
+
+                <button
+                    id="printJournalButton"
+                    class="retro-button print-button"
+                >
+                    📖 PRINT JOURNAL
+                </button>
+
+                <button
+                    id="editorToggle"
+                    class="retro-button"
+                >
+                    ✎ EDIT
+                </button>
+
+            </div>
+
+        </div>
+
+        <h1>
+            Sarah's Thailand Adventure
+        </h1>
+
+        <p>
+            Bangkok → North Thailand
+        </p>
+
+    </header>
+
+
+    <!-- =====================================================
+         EDITOR
+         ===================================================== -->
+
+    <section
+        id="editorPanel"
+        class="editor-panel hidden"
+    >
+
+        <div class="editor-login">
+
+            <h2>
+                EDITOR MODE
+            </h2>
+
+            <p>
+                Enter the editor password.
+            </p>
+
+            <input
+                id="editorPassword"
+                type="password"
+                placeholder="Password"
+            >
+
+            <button
+                id="editorLoginButton"
+                class="retro-button"
+            >
+                LOGIN
+            </button>
+
+            <div
+                id="loginMessage"
+                class="login-message"
+            ></div>
+
+        </div>
+
+
+        <div
+            id="editorContent"
+            class="hidden"
+        >
+
+            <div class="editor-session-bar">
+                <span>🔓 EDITOR ACCESS ACTIVE</span>
+                <button type="button" id="editorLogoutButton" class="editor-logout">LOG OUT</button>
+            </div>
+
+            <div class="editor-tabs">
+
+                <button
+                    class="editor-tab active"
+                    data-tab="location"
+                >
+                    📍 LOCATION
+                </button>
+
+                <button
+                    class="editor-tab"
+                    data-tab="diary"
+                >
+                    📔 DIARY
+                </button>
+
+                <button
+                    class="editor-tab"
+                    data-tab="post"
+                >
+                    ✎ POST
+                </button>
+
+                <button
+                    class="editor-tab"
+                    data-tab="photo"
+                >
+                    📷 PHOTO
+                </button>
+
+            </div>
+
+
+            <!-- LOCATION TAB -->
+
+            <div
+                id="tab-location"
+                class="editor-tab-content active"
+            >
+
+                <h3>
+                    Add Location
+                </h3>
+
+                <label>
+                    Place name
+                </label>
+
+                <input
+                    id="locationName"
+                    type="text"
+                    placeholder="Chiang Mai"
+                >
+
+                <label>
+                    Description
+                </label>
+
+                <textarea
+                    id="locationDescription"
+                    placeholder="What is special about this place?"
+                ></textarea>
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    id="locationDate"
+                    type="date"
+                >
+
+                <p class="editor-help">
+                    Click on the map to select the location.
+                </p>
+
+                <div
+                    id="selectedCoordinates"
+                    class="coordinates"
+                >
+                    No coordinates selected.
+                </div>
+
+                <button
+                    id="saveLocationButton"
+                    class="retro-button"
+                >
+                    SAVE LOCATION
+                </button>
+
+            </div>
+
+
+            <!-- DIARY TAB -->
+
+            <div
+                id="tab-diary"
+                class="editor-tab-content"
+            >
+
+                <h3>
+                    Add Diary Entry
+                </h3>
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    id="diaryDate"
+                    type="date"
+                >
+
+                <label>
+                    Title
+                </label>
+
+                <input
+                    id="diaryTitle"
+                    type="text"
+                    placeholder="A day I'll never forget"
+                >
+
+                <label>
+                    Entry
+                </label>
+
+                <textarea
+                    id="diaryText"
+                    rows="8"
+                    placeholder="Write what happened..."
+                ></textarea>
+
+                <label>
+                    Location
+                </label>
+
+                <select id="diaryLocation">
+                    <option value="">
+                        -- Select location --
+                    </option>
+                </select>
+
+                <button
+                    id="saveDiaryButton"
+                    class="retro-button"
+                >
+                    SAVE DIARY ENTRY
+                </button>
+
+            </div>
+
+
+            <!-- POST TAB -->
+
+            <div
+                id="tab-post"
+                class="editor-tab-content"
+            >
+
+                <h3>
+                    Add Post
+                </h3>
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    id="postDate"
+                    type="date"
+                >
+
+                <label>
+                    Title
+                </label>
+
+                <input
+                    id="postTitle"
+                    type="text"
+                    placeholder="First impressions of Thailand"
+                >
+
+                <label>
+                    Post
+                </label>
+
+                <textarea
+                    id="postText"
+                    rows="8"
+                    placeholder="Write your post..."
+                ></textarea>
+
+                <label>
+                    Location
+                </label>
+
+                <select id="postLocation">
+                    <option value="">
+                        -- Select location --
+                    </option>
+                </select>
+
+                <button
+                    id="savePostButton"
+                    class="retro-button"
+                >
+                    PUBLISH POST
+                </button>
+
+            </div>
+
+
+            <!-- PHOTO TAB -->
+
+            <div
+                id="tab-photo"
+                class="editor-tab-content"
+            >
+
+                <h3>
+                    Upload Photo
+                </h3>
+
+                <label>
+                    Photo
+                </label>
+
+                <input
+                    id="photoFile"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                >
+
+                <label>
+                    Caption
+                </label>
+
+                <input
+                    id="photoCaption"
+                    type="text"
+                    placeholder="Sunset in Bangkok"
+                >
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    id="photoDate"
+                    type="date"
+                >
+
+                <label>
+                    Location
+                </label>
+
+                <select id="photoLocation">
+                    <option value="">
+                        -- Select location --
+                    </option>
+                </select>
+
+                <button
+                    id="uploadPhotoButton"
+                    class="retro-button"
+                >
+                    UPLOAD PHOTO
+                </button>
+
+                <div
+                    id="uploadStatus"
+                    class="upload-status"
+                ></div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         MAIN CONTENT
+         ===================================================== -->
+
+    <main>
+
+        <!-- MAP -->
+
+        <section class="card">
+
+            <div class="section-heading">
+
+                <span>
+                    🗺 JOURNEY MAP
+                </span>
+
+                <div class="map-legend">
+
+                    <span>
+                        <i class="legend-dot current-dot"></i>
+                        Current
+                    </span>
+
+                    <span>
+                        <i class="legend-dot history-dot"></i>
+                        Visited
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div id="map"></div>
+
+        </section>
+
+
+        <!-- LOCATION DETAILS -->
+
+        <section
+            id="locationDetails"
+            class="card location-details hidden"
+        ></section>
+
+
+        <!-- DIARY -->
+
+        <section class="card">
+
+            <div class="section-heading">
+                📔 DIARY
+            </div>
+
+            <div
+                id="diaryList"
+                class="diary-list"
+            ></div>
+
+        </section>
+
+
+        <!-- POSTS -->
+
+        <section class="card">
+
+            <div class="section-heading">
+                ✎ POSTS
+            </div>
+
+            <div
+                id="postList"
+                class="post-list"
+            ></div>
+
+        </section>
+
+
+        <!-- PHOTOS -->
+
+        <section class="card">
+
+            <div class="section-heading">
+                📷 PHOTOS
+            </div>
+
+            <div
+                id="photoGrid"
+                class="photo-grid"
+            ></div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         FOOTER
+         ===================================================== -->
+
+    <footer>
+
+        <div>
+            SARAH.EXE // THAILAND 2026
+        </div>
+
+        <div>
+            Made with ♥
+        </div>
+
+    </footer>
+
+
+    <!-- =====================================================
+         PRINT JOURNAL
+         ===================================================== -->
+
+    <div
+        id="printJournal"
+        class="print-journal"
+        aria-hidden="true"
+    ></div>
+
+
+    <!-- =====================================================
+         SCRIPTS
+         ===================================================== -->
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+
+    <script src="config.js"></script>
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>
