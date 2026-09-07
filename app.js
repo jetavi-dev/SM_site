@@ -109,7 +109,7 @@ async function loadTravelData() {
 
         travelData = await response.json();
 
-        renderAll();
+        renderEverything();
     } catch (error) {
         console.error(
             "[travel] Could not load travel data:",
@@ -1325,7 +1325,7 @@ async function saveTravelData() {
 function getGithubToken() {
     const token = String(CONFIG.githubToken || "").trim();
 
-    if (!token || token === "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") {
+    if (!token || token === "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") {
         throw new Error(
             "GitHub token is not configured. Add it to config.js before using the editor."
         );
